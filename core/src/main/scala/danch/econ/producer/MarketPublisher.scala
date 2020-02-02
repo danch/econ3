@@ -12,6 +12,7 @@ object MarketPublisher {
 
    def apply(key: ServiceKey[MarketProtocol.MarketEvent], notification: Producer.Notification) : Behavior[Receptionist.Listing] = {
       Behaviors.setup { context => {
+            //Note: we may need to make this actor multi-use and subscribe to notifications on the service list (performance)
             context.system.receptionist ! Receptionist.Find(key, context.self)
             publishInventory(key, notification match {
                case Producer.InventoryLevelNotification(producerPath, itemId, quantity) =>
