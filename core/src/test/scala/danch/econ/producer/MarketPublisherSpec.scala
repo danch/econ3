@@ -15,10 +15,15 @@ class MarketPublisherSpec extends WordSpecLike with BeforeAndAfterAll {
    "MarketPublisher" must {
       "translate and propagate the event" in {
           val key = MarketProtocol.key("test-location")
-          val probe = testKit.createTestProbe[MarketProtocol.MarketEvent]("listener")
+
+          val probe = testKit.createTestProbe[MarketProtocol.MarketCommand]("listener")
+          val marketEventHandler = testKit.createTestProbe[MarketProtocol.MarketEvent]("marketEventHandler")
+          val producer = testKit.createTestProbe[MarketParticipant.Command]("marketParticipant")
+
           testKit.system.receptionist ! Receptionist.Register(key, probe.ref)
-          val publisher = testKit.spawn(MarketPublisher(key, Producer.InventoryLevelNotification(dummyProducerPath, "itemId1", 42)))
-          probe.expectMessage(MarketProtocol.CommoditySupply(dummyProducerPath, "itemId1", 42.0d))
+          val publisher = testKit.spawn(MarketPublisher(key, MarketParticipant.InventoryLevelNotification(producer.ref, "itemId1", 42.0), marketEventHandler.ref))
+
+          probe.expectMessage(MarketProtocol.CommoditySupply(marketEventHandler.ref, "itemId1", 42.0d))
       }
    }
 

@@ -16,21 +16,21 @@ class ProducerSpec extends WordSpecLike with BeforeAndAfterAll {
    "A Producer" must {
        "Respond to an AddInventory command by publishing the appropriate MarketEvent" in {
           val key = MarketProtocol.key(dummyLocation)
-          val probe = testKit.createTestProbe[MarketProtocol.MarketEvent]("listener")
+          val probe = testKit.createTestProbe[MarketProtocol.MarketCommand]("listener")
           testKit.system.receptionist ! Receptionist.Register(key, probe.ref)
 
-          val producer = testKit.spawn(Producer("producer1", dummyLocation))
-          producer ! Producer.AddInventory("itemId1", 42.0)
+          val producer = testKit.spawn(MarketParticipant("producer1", dummyLocation))
+          producer ! MarketParticipant.AddInventory("itemId1", 42.0)
 
           probe.expectMessage(MarketProtocol.CommoditySupply(producer.path.toStringWithoutAddress, "itemId1", 42.0d))
        }
       "Respond to a RemoveInventory command by publishing the appropriate MarketEvent" in {
          val key = MarketProtocol.key(dummyLocation)
-         val probe = testKit.createTestProbe[MarketProtocol.MarketEvent]("listener")
+         val probe = testKit.createTestProbe[MarketProtocol.MarketCommand]("listener")
          testKit.system.receptionist ! Receptionist.Register(key, probe.ref)
 
-         val producer = testKit.spawn(Producer("producer1", dummyLocation))
-         producer ! Producer.RemoveInventory("itemId1", 42.0)
+         val producer = testKit.spawn(MarketParticipant("producer1", dummyLocation))
+         producer ! MarketParticipant.RemoveInventory("itemId1", 42.0)
 
          probe.expectMessage(MarketProtocol.CommoditySupply(producer.path.toStringWithoutAddress, "itemId1", -42.0d))
       }
