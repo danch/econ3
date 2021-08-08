@@ -4,7 +4,8 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
-import danch.econ.market.MarketProtocol
+import akka.actor.typed.pubsub.Topic
+import danch.econ.protocols.SimProtocol
 
 object Producer {
    sealed trait Command
@@ -15,20 +16,31 @@ object Producer {
 
    final case class InventoryLevelNotification(producerPath: String, itemId: String, quantity: Double) extends Notification
 
-   private case class ProducerState(id: String, location: String, inventory: Map[String, Double],
-                                    marketKey: ServiceKey[MarketProtocol.MarketEvent]) {
+   private case class ProducerState(id: String, location: String, inventory: Map[String, Double]) {
       def withInventoryChange(itemId: String, deltaQuantity: Double) : ProducerState = {
          val currentQuant = inventory.getOrElse(itemId, 0.0d)
          val newInventory = inventory + (itemId -> (currentQuant + deltaQuantity))
-         ProducerState(id, location, newInventory, marketKey)
+         ProducerState(id, location, newInventory)
       }
    }
 
-   def apply(id: String, location: String) : Behavior[Command] = {
+   def apply(id: String, location: String, topicMap: Map[String, ActorRef[SimProtocol.MarketEvent]]) : Behavior[Command] = {
       Behaviors.setup { context =>
-
-         producer(ProducerState(id, location, collection.immutable.Map[String, Double](), MarketProtocol.key(location)))
+         producer(ProducerState(id, location, collection.immutable.Map[String, Double]()))
       }
+   }
+
+   private def marketListener(producer: ActorRef[Command]) : Behavior[SimProtocol.MarketEvent] = Behaviors.receive { (context, message) =>
+     message match {
+        case SimProtocol.Sold(sellerPath, buyerPath, itemId, quantity) =>
+           if (sellerPath == producer.path) {
+               producer ! RemoveInventory(itemId, quantity)
+           }
+           if (buyerPath == producer.path) {
+               producer ! AddInventory(itemId, quantity)
+           }
+         Behaviors.same
+     }
    }
 
    private def producer(state: ProducerState) : Behavior[Command] = Behaviors.receive { (context, message) =>
@@ -36,15 +48,12 @@ object Producer {
          case AddInventory(itemId, quantity) =>
             val newState = state.withInventoryChange(itemId, quantity)
             val newQuantity = newState.inventory.getOrElse(itemId, 0.0d)
-            context.spawnAnonymous[Receptionist.Listing](MarketPublisher(state.marketKey, InventoryLevelNotification(context.self.path.toStringWithoutAddress, itemId, newQuantity)))
             producer(newState)
          case RemoveInventory(itemId, quantity) =>
             val newState = state.withInventoryChange(itemId, -quantity)
             val newQuantity = newState.inventory.getOrElse(itemId, 0.0d)
-            context.spawnAnonymous[Receptionist.Listing](MarketPublisher(state.marketKey, InventoryLevelNotification(context.self.path.toStringWithoutAddress, itemId, newQuantity)))
             producer(newState)
       }
    }
-
 
 }

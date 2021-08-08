@@ -1,9 +1,13 @@
 name := "core"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.6.3"
-libraryDependencies += "com.typesafe.akka" %% "akka-cluster-typed" % "2.6.3"
-libraryDependencies += "com.typesafe.akka" %% "akka-actor-testkit-typed" % "2.6.3" % Test
-libraryDependencies += "com.typesafe.akka" %% "akka-slf4j" % "2.6.3"
+val AkkaVersion = "2.6.15"
+libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-cluster-tools" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test
+libraryDependencies += "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion
+libraryDependencies += "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test
 // libraryDependencies += "org.danch" % "math" % "0.9.6-SNAPSHOT"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test
 //libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
